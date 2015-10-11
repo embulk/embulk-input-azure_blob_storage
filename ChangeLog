@@ -1,0 +1,4 @@
+Release 0.1.1 - 2015-10-11
+
+* Change 'DefaultEndpointsProtocol' from http to https
+* Specify targetCompatibility = 1.7

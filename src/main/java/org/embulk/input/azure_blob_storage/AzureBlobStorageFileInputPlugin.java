@@ -103,7 +103,7 @@ public class AzureBlobStorageFileInputPlugin
 
     private static CloudBlobClient newAzureClient(String accountName, String accountKey)
     {
-        String connectionString = "DefaultEndpointsProtocol=http;" +
+        String connectionString = "DefaultEndpointsProtocol=https;" +
                 "AccountName=" + accountName + ";" +
                 "AccountKey=" + accountKey;
 

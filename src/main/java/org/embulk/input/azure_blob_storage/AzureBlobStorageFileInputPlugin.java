@@ -1,32 +1,39 @@
 package org.embulk.input.azure_blob_storage;
 
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.io.InputStream;
-import java.io.IOException;
-import java.security.InvalidKeyException;
-import java.net.URISyntaxException;
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableList;
+import com.microsoft.azure.storage.CloudStorageAccount;
+import com.microsoft.azure.storage.ResultContinuation;
+import com.microsoft.azure.storage.ResultSegment;
+import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.CloudBlob;
+import com.microsoft.azure.storage.blob.CloudBlobClient;
+import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import com.microsoft.azure.storage.blob.ListBlobItem;
 import org.embulk.config.Config;
+import org.embulk.config.ConfigDefault;
+import org.embulk.config.ConfigDiff;
 import org.embulk.config.ConfigException;
 import org.embulk.config.ConfigInject;
-import org.embulk.config.ConfigDefault;
-import org.embulk.config.Task;
-import org.embulk.config.TaskSource;
 import org.embulk.config.ConfigSource;
-import org.embulk.config.ConfigDiff;
+import org.embulk.config.Task;
 import org.embulk.config.TaskReport;
+import org.embulk.config.TaskSource;
+import org.embulk.spi.BufferAllocator;
 import org.embulk.spi.Exec;
 import org.embulk.spi.FileInputPlugin;
-import org.embulk.spi.BufferAllocator;
 import org.embulk.spi.TransactionalFileInput;
 import org.embulk.spi.util.InputStreamFileInput;
-import com.microsoft.azure.storage.*;
-import com.microsoft.azure.storage.blob.*;
 import org.slf4j.Logger;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URISyntaxException;
+import java.security.InvalidKeyException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class AzureBlobStorageFileInputPlugin
         implements FileInputPlugin
@@ -84,12 +91,13 @@ public class AzureBlobStorageFileInputPlugin
 
         ConfigDiff configDiff = Exec.newConfigDiff();
 
-        List<String> files = new ArrayList<> (task.getFiles());
+        List<String> files = new ArrayList<>(task.getFiles());
         if (files.isEmpty()) {
             if (task.getLastPath().isPresent()) {
                 configDiff.set("last_path", task.getLastPath().get());
             }
-        } else {
+        }
+        else {
             Collections.sort(files);
             configDiff.set("last_path", files.get(files.size() - 1));
         }
@@ -110,7 +118,8 @@ public class AzureBlobStorageFileInputPlugin
         CloudStorageAccount account;
         try {
             account = CloudStorageAccount.parse(connectionString);
-        } catch (InvalidKeyException | URISyntaxException ex) {
+        }
+        catch (InvalidKeyException | URISyntaxException ex) {
             throw new ConfigException(ex);
         }
         return account.createCloudBlobClient();
@@ -138,7 +147,7 @@ public class AzureBlobStorageFileInputPlugin
             ResultSegment<ListBlobItem> blobs;
             do {
                 blobs = container.listBlobsSegmented(prefix, true, null, maxResults, token, null, null);
-                log.debug(String.format("result count(include directory):%s continuationToken:%s", blobs.getLength() ,blobs.getContinuationToken()));
+                log.debug(String.format("result count(include directory):%s continuationToken:%s", blobs.getLength(), blobs.getContinuationToken()));
                 for (ListBlobItem blobItem : blobs.getResults()) {
                     if (blobItem instanceof CloudBlob) {
                         CloudBlob blob = (CloudBlob) blobItem;
@@ -150,7 +159,8 @@ public class AzureBlobStorageFileInputPlugin
                 }
                 token = blobs.getContinuationToken();
             } while (blobs.getContinuationToken() != null);
-        } catch (URISyntaxException | StorageException ex) {
+        }
+        catch (URISyntaxException | StorageException ex) {
             throw Throwables.propagate(ex);
         }
         return builder.build();
@@ -167,13 +177,14 @@ public class AzureBlobStorageFileInputPlugin
             extends InputStreamFileInput
             implements TransactionalFileInput
     {
-        public AzureFileInput (PluginTask task, int taskIndex)
+        public AzureFileInput(PluginTask task, int taskIndex)
         {
             super(task.getBufferAllocator(), new SingleFileProvider(task, taskIndex));
         }
         public void abort() {}
 
-        public TaskReport commit() {
+        public TaskReport commit()
+        {
             return Exec.newTaskReport();
         }
 
@@ -208,7 +219,8 @@ public class AzureBlobStorageFileInputPlugin
                 CloudBlobContainer container = client.getContainerReference(containerName);
                 CloudBlob blob = container.getBlockBlobReference(key);
                 inputStream = blob.openInputStream();
-            } catch (StorageException | URISyntaxException ex) {
+            }
+            catch (StorageException | URISyntaxException ex) {
                 Throwables.propagate(ex);
             }
             return inputStream;

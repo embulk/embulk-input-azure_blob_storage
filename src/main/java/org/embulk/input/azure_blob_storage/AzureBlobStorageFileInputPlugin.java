@@ -61,6 +61,10 @@ public class AzureBlobStorageFileInputPlugin
         @ConfigDefault("5000")
         int getMaxResults();
 
+        @Config("max_connection_retry")
+        @ConfigDefault("5") // 5 times retry to connect sftp server if failed.
+        int getMaxConnectionRetry();
+
         List<String> getFiles();
 
         void setFiles(List<String> files);
@@ -198,6 +202,7 @@ public class AzureBlobStorageFileInputPlugin
         private CloudBlobClient client;
         private final String containerName;
         private final String key;
+        private final int maxConnectionRetry;
         private boolean opened = false;
 
         public SingleFileProvider(PluginTask task, int taskIndex)
@@ -205,6 +210,7 @@ public class AzureBlobStorageFileInputPlugin
             this.client = newAzureClient(task.getAccountName(), task.getAccountKey());
             this.containerName = task.getContainer();
             this.key = task.getFiles().get(taskIndex);
+            this.maxConnectionRetry = task.getMaxConnectionRetry();
         }
 
         @Override
@@ -214,16 +220,31 @@ public class AzureBlobStorageFileInputPlugin
                 return null;
             }
             opened = true;
-            InputStream inputStream = null;
-            try {
-                CloudBlobContainer container = client.getContainerReference(containerName);
-                CloudBlob blob = container.getBlockBlobReference(key);
-                inputStream = blob.openInputStream();
+            int count = 0;
+
+            while (true) {
+                try {
+                    CloudBlobContainer container = client.getContainerReference(containerName);
+                    CloudBlob blob = container.getBlockBlobReference(key);
+                    return blob.openInputStream();
+                }
+                catch (StorageException | URISyntaxException ex) {
+                    if (++count == maxConnectionRetry) {
+                        Throwables.propagate(ex);
+                    }
+
+                    try {
+                        long sleepTime = ((long) Math.pow(2, count) * 1000);
+                        log.warn("Sleep in next connection retry: {} milliseconds", sleepTime);
+                        Thread.sleep(sleepTime);
+                    }
+                    catch (InterruptedException ex2) {
+                        // Ignore this exception because this exception is just about `sleep`.
+                        log.warn(ex2.getMessage(), ex2);
+                    }
+                    log.warn("Retrying to connect Azure server: " + count + " times");
+                }
             }
-            catch (StorageException | URISyntaxException ex) {
-                Throwables.propagate(ex);
-            }
-            return inputStream;
         }
 
         @Override

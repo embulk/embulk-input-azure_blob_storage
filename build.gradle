@@ -3,6 +3,7 @@ plugins {
     id "com.github.jruby-gradle.base" version "0.1.5"
     id "java"
     id "checkstyle"
+    id "jacoco"
 }
 import com.github.jrubygradle.JRubyExec
 repositories {
@@ -24,7 +25,9 @@ dependencies {
 
     compile "com.microsoft.azure:azure-storage:4.0.0"
 
-    testCompile "junit:junit:4.+"
+    testCompile "junit:junit:4.12"
+    testCompile "org.embulk:embulk-core:0.8.8:tests"
+    testCompile "org.embulk:embulk-standards:0.8.8"
 }
 
 task classpath(type: Copy, dependsOn: ["jar"]) {

@@ -60,3 +60,56 @@ out: {type: stdout}
 ```
 $ ./gradlew gem  # -t to watch change of files and rebuild continuously
 ```
+
+## Test
+
+```
+$ ./gradlew test  # -t to watch change of files and rebuild continuously
+```
+
+To run unit tests, we need to configure the following environment variables.
+
+Additionally, following files will be needed to upload to existing GCS bucket.
+
+* [sample_01.csv](src/test/resources/sample_01.csv)
+* [sample_02.csv](src/test/resources/sample_02.csv)
+
+When environment variables are not set, skip some test cases.
+
+```
+AZURE_ACCOUNT_NAME
+AZURE_ACCOUNT_KEY
+AZURE_CONTAINER
+AZURE_CONTAINER_IMPORT_DIRECTORY (optional, if needed)
+```
+
+If you're using Mac OS X El Capitan and GUI Applications(IDE), like as follows.
+```xml
+$ vi ~/Library/LaunchAgents/environment.plist
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>my.startup</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>sh</string>
+    <string>-c</string>
+    <string>
+      launchctl setenv AZURE_ACCOUNT_NAME my-account-name
+      launchctl setenv AZURE_ACCOUNT_KEY my-account-key
+      launchctl setenv AZURE_CONTAINER my-container
+      launchctl setenv AZURE_CONTAINER_IMPORT_DIRECTORY unittests
+    </string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+</dict>
+</plist>
+
+$ launchctl load ~/Library/LaunchAgents/environment.plist
+$ launchctl getenv AZURE_ACCOUNT_NAME //try to get value.
+
+Then start your applications.
+```

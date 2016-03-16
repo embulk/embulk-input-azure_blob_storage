@@ -92,7 +92,9 @@
         <module name="TypeName"/>
         <module name="PackageName"/>
         <module name="ParameterName"/>
-        <module name="StaticVariableName"/>
+        <module name="StaticVariableName">
+            <property name="format" value="^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$"/>
+        </module>
         <module name="ClassTypeParameterName">
             <property name="format" value="^[A-Z][0-9]?$"/>
         </module>

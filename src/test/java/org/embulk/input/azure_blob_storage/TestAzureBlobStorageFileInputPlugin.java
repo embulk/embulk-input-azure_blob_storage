@@ -101,7 +101,6 @@ public class TestAzureBlobStorageFileInputPlugin
                 .set("container", AZURE_CONTAINER)
                 .set("path_prefix", AZURE_PATH_PREFIX)
                 .set("last_path", "")
-                .set("file_ext", ".csv")
                 .set("parser", parserConfig(schemaConfig()));
     }
 
@@ -114,7 +113,6 @@ public class TestAzureBlobStorageFileInputPlugin
                 .set("container", AZURE_CONTAINER)
                 .set("path_prefix", AZURE_PATH_PREFIX)
                 .set("last_path", "")
-                .set("file_ext", ".csv")
                 .set("parser", parserConfig(schemaConfig()));
 
         runner.transaction(config, new Control());
@@ -129,7 +127,6 @@ public class TestAzureBlobStorageFileInputPlugin
                 .set("container", AZURE_CONTAINER)
                 .set("path_prefix", AZURE_PATH_PREFIX)
                 .set("last_path", "")
-                .set("file_ext", ".csv")
                 .set("parser", parserConfig(schemaConfig()));
 
         runner.transaction(config, new Control());
@@ -144,7 +141,6 @@ public class TestAzureBlobStorageFileInputPlugin
                 .set("container", null)
                 .set("path_prefix", AZURE_PATH_PREFIX)
                 .set("last_path", "")
-                .set("file_ext", ".csv")
                 .set("parser", parserConfig(schemaConfig()));
 
         runner.transaction(config, new Control());

@@ -93,17 +93,6 @@ public class TestAzureBlobStorageFileInputPlugin
         assertEquals(5, task.getMaxConnectionRetry());
     }
 
-    public ConfigSource config()
-    {
-        return Exec.newConfigSource()
-                .set("account_name", AZURE_ACCOUNT_NAME)
-                .set("account_key", AZURE_ACCOUNT_KEY)
-                .set("container", AZURE_CONTAINER)
-                .set("path_prefix", AZURE_PATH_PREFIX)
-                .set("last_path", "")
-                .set("parser", parserConfig(schemaConfig()));
-    }
-
     @Test(expected = ConfigException.class)
     public void checkDefaultValuesAccountNameIsNull()
     {
@@ -162,7 +151,7 @@ public class TestAzureBlobStorageFileInputPlugin
     public void testResume()
     {
         PluginTask task = config.loadConfig(PluginTask.class);
-        task.setFiles(Arrays.asList("in/aa/a"));
+        task.setFiles(createFileList(Arrays.asList("in/aa/a"), task));
         ConfigDiff configDiff = plugin.resume(task.dump(), 0, new FileInputPlugin.Control()
         {
             @Override
@@ -186,8 +175,8 @@ public class TestAzureBlobStorageFileInputPlugin
             throws NoSuchMethodException, IllegalAccessException, InvocationTargetException
     {
         List<String> expected = Arrays.asList(
-                AZURE_CONTAINER_IMPORT_DIRECTORY + "sample_01.csv",
-                AZURE_CONTAINER_IMPORT_DIRECTORY + "sample_02.csv"
+            AZURE_CONTAINER_IMPORT_DIRECTORY + "sample_01.csv",
+            AZURE_CONTAINER_IMPORT_DIRECTORY + "sample_02.csv"
         );
 
         PluginTask task = config.loadConfig(PluginTask.class);
@@ -206,8 +195,9 @@ public class TestAzureBlobStorageFileInputPlugin
 
         Method listFiles = AzureBlobStorageFileInputPlugin.class.getDeclaredMethod("listFiles", CloudBlobClient.class, PluginTask.class);
         listFiles.setAccessible(true);
-        List<String> actual = (List<String>) listFiles.invoke(plugin, client, task);
-        assertEquals(expected, actual);
+        FileList actual = (FileList) listFiles.invoke(plugin, client, task);
+        assertEquals(expected.get(0), actual.get(0).get(0));
+        assertEquals(expected.get(1), actual.get(1).get(0));
         assertEquals(AZURE_CONTAINER_IMPORT_DIRECTORY + "sample_02.csv", configDiff.get(String.class, "last_path"));
     }
 
@@ -224,7 +214,7 @@ public class TestAzureBlobStorageFileInputPlugin
 
         Method listFiles = AzureBlobStorageFileInputPlugin.class.getDeclaredMethod("listFiles", CloudBlobClient.class, PluginTask.class);
         listFiles.setAccessible(true);
-        task.setFiles((List<String>) listFiles.invoke(plugin, client, task));
+        task.setFiles((FileList) listFiles.invoke(plugin, client, task));
 
         assertRecords(config, output);
     }
@@ -250,6 +240,17 @@ public class TestAzureBlobStorageFileInputPlugin
             }
             return reports;
         }
+    }
+
+    public ConfigSource config()
+    {
+        return Exec.newConfigSource()
+                .set("account_name", AZURE_ACCOUNT_NAME)
+                .set("account_key", AZURE_ACCOUNT_KEY)
+                .set("container", AZURE_CONTAINER)
+                .set("path_prefix", AZURE_PATH_PREFIX)
+                .set("last_path", "")
+                .set("parser", parserConfig(schemaConfig()));
     }
 
     private ImmutableMap<String, Object> parserConfig(ImmutableList<Object> schemaConfig)
@@ -335,5 +336,14 @@ public class TestAzureBlobStorageFileInputPlugin
             dir = dir.replaceFirst("/", "");
         }
         return dir;
+    }
+
+    private FileList createFileList(List<String> fileList, PluginTask task)
+    {
+        FileList.Builder builder = new FileList.Builder(task);
+        for (String file : fileList) {
+            builder.add(file, 0);
+        }
+        return builder.build();
     }
 }

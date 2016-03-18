@@ -16,6 +16,8 @@ First, create Azure [Storage Account](https://azure.microsoft.com/en-us/document
 - **account_key**: primary access key (string, required)
 - **container**: container name data stored (string, required)
 - **path_prefix**: prefix of target keys (string, required) (string, required)
+- **path_match_pattern**: regexp to match file paths. If a file path doesn't match with this pattern, the file will be skipped (regexp string, optional)
+- **total_file_count_limit**: maximum number of files to read (integer, optional)
 
 ## Example
 
@@ -53,6 +55,21 @@ in:
     - {name: purchase, type: timestamp, format: '%Y%m%d'}
     - {name: comment, type: string}
 out: {type: stdout}
+```
+
+To filter files using regexp:
+
+```yaml
+in:
+  type: sftp
+  path_prefix: logs/csv-
+  ...
+  path_match_pattern: \.csv$   # a file will be skipped if its path doesn't match with this pattern
+
+  ## some examples of regexp:
+  #path_match_pattern: /archive/         # match files in .../archive/... directory
+  #path_match_pattern: /data1/|/data2/   # match files in .../data1/... or .../data2/... directory
+  #path_match_pattern: .csv$|.csv.gz$    # match files whose suffix is .csv or .csv.gz
 ```
 
 ## Build

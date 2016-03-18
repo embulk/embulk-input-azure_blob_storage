@@ -33,13 +33,14 @@ import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 public class AzureBlobStorageFileInputPlugin
         implements FileInputPlugin
 {
     public interface PluginTask
-            extends Task
+            extends Task, FileList.Task
     {
         @Config("account_name")
         String getAccountName();
@@ -65,9 +66,8 @@ public class AzureBlobStorageFileInputPlugin
         @ConfigDefault("5") // 5 times retry to connect sftp server if failed.
         int getMaxConnectionRetry();
 
-        List<String> getFiles();
-
-        void setFiles(List<String> files);
+        FileList getFiles();
+        void setFiles(FileList files);
 
         @ConfigInject
         BufferAllocator getBufferAllocator();
@@ -83,28 +83,18 @@ public class AzureBlobStorageFileInputPlugin
         CloudBlobClient blobClient = newAzureClient(task.getAccountName(), task.getAccountKey());
         task.setFiles(listFiles(blobClient, task));
 
-        return resume(task.dump(), task.getFiles().size(), control);
+        return resume(task.dump(), task.getFiles().getTaskCount(), control);
     }
 
     @Override
     public ConfigDiff resume(TaskSource taskSource, int taskCount, FileInputPlugin.Control control)
     {
         PluginTask task = taskSource.loadTask(PluginTask.class);
-
         control.run(taskSource, taskCount);
 
         ConfigDiff configDiff = Exec.newConfigDiff();
+        configDiff.set("last_path", task.getFiles().getLastPath(task.getLastPath()));
 
-        List<String> files = new ArrayList<>(task.getFiles());
-        if (files.isEmpty()) {
-            if (task.getLastPath().isPresent()) {
-                configDiff.set("last_path", task.getLastPath().get());
-            }
-        }
-        else {
-            Collections.sort(files);
-            configDiff.set("last_path", files.get(files.size() - 1));
-        }
         return configDiff;
     }
 
@@ -129,19 +119,20 @@ public class AzureBlobStorageFileInputPlugin
         return account.createCloudBlobClient();
     }
 
-    private List<String> listFiles(CloudBlobClient client, PluginTask task)
+    private FileList listFiles(CloudBlobClient client, PluginTask task)
     {
         if (task.getPathPrefix().equals("/")) {
             log.info("Listing files with prefix \"/\". This doesn't mean all files in a bucket. If you intend to read all files, use \"path_prefix: ''\" (empty string) instead.");
         }
+        FileList.Builder builder = new FileList.Builder(task);
 
-        return listFilesWithPrefix(client, task.getContainer(), task.getPathPrefix(), task.getLastPath(), task.getMaxResults());
+        return listFilesWithPrefix(builder, client, task.getContainer(), task.getPathPrefix(), task.getLastPath(), task.getMaxResults());
     }
 
-    private static List<String> listFilesWithPrefix(CloudBlobClient client, String containerName,
+    private static FileList listFilesWithPrefix(FileList.Builder builder, CloudBlobClient client, String containerName,
                                              String prefix, Optional<String> lastPath, int maxResults)
     {
-        ImmutableList.Builder<String> builder = ImmutableList.builder();
+
         // It seems I can't cast lastKey<String> to token<ResultContinuation> by Azure SDK for Java
         String lastKey = lastPath.orNull();
         ResultContinuation token = null;
@@ -156,7 +147,7 @@ public class AzureBlobStorageFileInputPlugin
                     if (blobItem instanceof CloudBlob) {
                         CloudBlob blob = (CloudBlob) blobItem;
                         if (blob.exists() && !blob.getUri().toString().endsWith("/")) {
-                            builder.add(blob.getName());
+                            builder.add(blob.getName(), blob.getProperties().getLength());
                             log.debug(String.format("name:%s, class:%s, uri:%s", blob.getName(), blob.getClass(), blob.getUri()));
                         }
                     }
@@ -201,7 +192,7 @@ public class AzureBlobStorageFileInputPlugin
     {
         private CloudBlobClient client;
         private final String containerName;
-        private final String key;
+        private final Iterator<String> iterator;
         private final int maxConnectionRetry;
         private boolean opened = false;
 
@@ -209,14 +200,14 @@ public class AzureBlobStorageFileInputPlugin
         {
             this.client = newAzureClient(task.getAccountName(), task.getAccountKey());
             this.containerName = task.getContainer();
-            this.key = task.getFiles().get(taskIndex);
+            this.iterator = task.getFiles().get(taskIndex).iterator();
             this.maxConnectionRetry = task.getMaxConnectionRetry();
         }
 
         @Override
         public InputStream openNext() throws IOException
         {
-            if (opened) {
+            if (opened || !iterator.hasNext()) {
                 return null;
             }
             opened = true;
@@ -225,7 +216,7 @@ public class AzureBlobStorageFileInputPlugin
             while (true) {
                 try {
                     CloudBlobContainer container = client.getContainerReference(containerName);
-                    CloudBlob blob = container.getBlockBlobReference(key);
+                    CloudBlob blob = container.getBlockBlobReference(iterator.next());
                     return blob.openInputStream();
                 }
                 catch (StorageException | URISyntaxException ex) {

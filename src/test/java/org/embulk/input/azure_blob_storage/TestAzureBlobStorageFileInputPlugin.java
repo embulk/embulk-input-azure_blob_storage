@@ -219,6 +219,21 @@ public class TestAzureBlobStorageFileInputPlugin
         assertRecords(config, output);
     }
 
+    @Test
+    public void testCreateNextToken() throws Exception
+    {
+        Method base64Encode = AzureBlobStorageFileInputPlugin.class.getDeclaredMethod("createNextToken", String.class);
+        base64Encode.setAccessible(true);
+
+        String expected = "2!92!MDAwMDI1IXJlYWRvbmx5L3NhbXBsZV8wMS50c3YuZ3ohMDAwMDI4ITk5OTktMTItMzFUMjM6NTk6NTkuOTk5OTk5OVoh";
+        String lastPath = "readonly/sample_01.tsv.gz";
+        assertEquals(expected, base64Encode.invoke(plugin, lastPath).toString());
+
+        expected = "2!120!MDAwMDQ2IXBhdGgvdGhhdC9oYXZlL2xvbmcvcGF0aC9uYW1lL3NhbXBsZV8wMS50c3YuZ3ohMDAwMDI4ITk5OTktMTItMzFUMjM6NTk6NTkuOTk5OTk5OVoh";
+        lastPath = "path/that/have/long/path/name/sample_01.tsv.gz";
+        assertEquals(expected, base64Encode.invoke(plugin, lastPath).toString());
+    }
+
     static List<TaskReport> emptyTaskReports(int taskCount)
     {
         ImmutableList.Builder<TaskReport> reports = new ImmutableList.Builder<>();

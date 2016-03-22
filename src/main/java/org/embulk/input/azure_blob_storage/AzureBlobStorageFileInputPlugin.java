@@ -1,10 +1,12 @@
 package org.embulk.input.azure_blob_storage;
 
+import com.google.common.base.Charsets;
 import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
+import com.google.common.io.BaseEncoding;
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.ResultContinuation;
+import com.microsoft.azure.storage.ResultContinuationType;
 import com.microsoft.azure.storage.ResultSegment;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlob;
@@ -31,8 +33,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -132,10 +132,15 @@ public class AzureBlobStorageFileInputPlugin
     private static FileList listFilesWithPrefix(FileList.Builder builder, CloudBlobClient client, String containerName,
                                              String prefix, Optional<String> lastPath, int maxResults)
     {
-
-        // It seems I can't cast lastKey<String> to token<ResultContinuation> by Azure SDK for Java
-        String lastKey = lastPath.orNull();
+        String lastKey = (lastPath.isPresent() && !lastPath.get().isEmpty()) ? createNextToken(lastPath.get()) : null;
         ResultContinuation token = null;
+        if (lastKey != null) {
+            token = new ResultContinuation();
+            token.setContinuationType(ResultContinuationType.BLOB);
+            log.debug("lastPath: {}", lastPath.get());
+            log.debug("lastPath(Base64encoded): {}", lastKey);
+            token.setNextMarker(lastKey);
+        }
 
         try {
             CloudBlobContainer container = client.getContainerReference(containerName);
@@ -240,5 +245,24 @@ public class AzureBlobStorageFileInputPlugin
 
         @Override
         public void close() {}
+    }
+
+    private static String createNextToken(String path)
+    {
+        StringBuilder sb = new StringBuilder()
+                .append(String.format("%06d", path.length()))
+                .append("!")
+                .append(path)
+                .append("!000028!9999-12-31T23:59:59.9999999Z!");
+
+        String encodedString = BaseEncoding.base64().encode(sb.toString().getBytes(Charsets.UTF_8));
+
+        StringBuilder marker = new StringBuilder()
+                .append("2")
+                .append("!")
+                .append(encodedString.length())
+                .append("!")
+                .append(encodedString);
+        return marker.toString();
     }
 }

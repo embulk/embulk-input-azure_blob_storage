@@ -65,8 +65,8 @@ Gem::Specification.new do |spec|
   spec.name          = "${project.name}"
   spec.version       = "${project.version}"
   spec.authors       = ["Satoshi Akama"]
-  spec.summary       = %[Microsoft Azure blob Storage file input plugin for Embulk]
-  spec.description   = %[Reads files stored on Microsoft Azure blob Storage.]
+  spec.summary       = %[Microsoft Azure Blob Storage file input plugin for Embulk]
+  spec.description   = %[Reads files stored on Microsoft Azure Blob Storage.]
   spec.email         = ["satoshiakama@gmail.com"]
   spec.licenses      = ["Apache-2.0"]
   spec.homepage      = "https://github.com/sakama/embulk-input-azure_blob_storage"

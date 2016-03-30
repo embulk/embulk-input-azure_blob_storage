@@ -1,6 +1,6 @@
-# Azure blob Storage file input plugin for Embulk
+# Azure Blob Storage file input plugin for Embulk
 
-[Embulk](http://www.embulk.org/) file input plugin read files stored on [Microsoft Azure](https://azure.microsoft.com/) [blob Storage](https://azure.microsoft.com/en-us/documentation/articles/storage-introduction/#blob-storage)
+[Embulk](http://www.embulk.org/) file input plugin read files stored on [Microsoft Azure](https://azure.microsoft.com/) [Blob Storage](https://azure.microsoft.com/en-us/documentation/articles/storage-introduction/#blob-storage)
 
 ## Overview
 

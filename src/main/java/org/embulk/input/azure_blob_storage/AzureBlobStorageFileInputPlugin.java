@@ -27,7 +27,10 @@ import org.embulk.spi.Exec;
 import org.embulk.spi.FileInputPlugin;
 import org.embulk.spi.TransactionalFileInput;
 import org.embulk.spi.util.InputStreamFileInput;
+import org.embulk.spi.util.RetryExecutor.RetryGiveupException;
+import org.embulk.spi.util.RetryExecutor.Retryable;
 import org.slf4j.Logger;
+import static org.embulk.spi.util.RetryExecutor.retryExecutor;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -63,7 +66,7 @@ public class AzureBlobStorageFileInputPlugin
         int getMaxResults();
 
         @Config("max_connection_retry")
-        @ConfigDefault("5") // 5 times retry to connect sftp server if failed.
+        @ConfigDefault("10") // 10 times retry to connect sftp server if failed.
         int getMaxConnectionRetry();
 
         FileList getFiles();
@@ -126,44 +129,85 @@ public class AzureBlobStorageFileInputPlugin
         }
         FileList.Builder builder = new FileList.Builder(task);
 
-        return listFilesWithPrefix(builder, client, task.getContainer(), task.getPathPrefix(), task.getLastPath(), task.getMaxResults());
+        return listFilesWithPrefix(builder, client, task.getContainer(), task.getPathPrefix(),
+                                    task.getLastPath(), task.getMaxResults(), task.getMaxConnectionRetry());
     }
 
-    private static FileList listFilesWithPrefix(FileList.Builder builder, CloudBlobClient client, String containerName,
-                                             String prefix, Optional<String> lastPath, int maxResults)
+    private static FileList listFilesWithPrefix(final FileList.Builder builder, final CloudBlobClient client,
+                                                final String containerName, final String prefix, final Optional<String> lastPath,
+                                                final int maxResults, final int maxConnectionRetry)
     {
-        String lastKey = (lastPath.isPresent() && !lastPath.get().isEmpty()) ? createNextToken(lastPath.get()) : null;
-        ResultContinuation token = null;
-        if (lastKey != null) {
-            token = new ResultContinuation();
-            token.setContinuationType(ResultContinuationType.BLOB);
-            log.debug("lastPath: {}", lastPath.get());
-            log.debug("lastPath(Base64encoded): {}", lastKey);
-            token.setNextMarker(lastKey);
-        }
-
+        final String lastKey = (lastPath.isPresent() && !lastPath.get().isEmpty()) ? createNextToken(lastPath.get()) : null;
         try {
-            CloudBlobContainer container = client.getContainerReference(containerName);
-            ResultSegment<ListBlobItem> blobs;
-            do {
-                blobs = container.listBlobsSegmented(prefix, true, null, maxResults, token, null, null);
-                log.debug(String.format("result count(include directory):%s continuationToken:%s", blobs.getLength(), blobs.getContinuationToken()));
-                for (ListBlobItem blobItem : blobs.getResults()) {
-                    if (blobItem instanceof CloudBlob) {
-                        CloudBlob blob = (CloudBlob) blobItem;
-                        if (blob.exists() && !blob.getUri().toString().endsWith("/")) {
-                            builder.add(blob.getName(), blob.getProperties().getLength());
-                            log.debug(String.format("name:%s, class:%s, uri:%s", blob.getName(), blob.getClass(), blob.getUri()));
+            return retryExecutor()
+                    .withRetryLimit(maxConnectionRetry)
+                    .withInitialRetryWait(500)
+                    .withMaxRetryWait(30 * 1000)
+                    .runInterruptible(new Retryable<FileList>() {
+                        @Override
+                        public FileList call() throws StorageException, URISyntaxException, IOException
+                        {
+                            ResultContinuation token = null;
+                            if (lastKey != null) {
+                                token = new ResultContinuation();
+                                token.setContinuationType(ResultContinuationType.BLOB);
+                                log.debug("lastPath: {}", lastPath.get());
+                                log.debug("lastPath(Base64encoded): {}", lastKey);
+                                token.setNextMarker(lastKey);
+                            }
+
+                            CloudBlobContainer container = client.getContainerReference(containerName);
+                            ResultSegment<ListBlobItem> blobs;
+                            do {
+                                blobs = container.listBlobsSegmented(prefix, true, null, maxResults, token, null, null);
+                                log.debug(String.format("result count(include directory):%s continuationToken:%s", blobs.getLength(), blobs.getContinuationToken()));
+                                for (ListBlobItem blobItem : blobs.getResults()) {
+                                    if (blobItem instanceof CloudBlob) {
+                                        CloudBlob blob = (CloudBlob) blobItem;
+                                        if (blob.exists() && !blob.getUri().toString().endsWith("/")) {
+                                            builder.add(blob.getName(), blob.getProperties().getLength());
+                                            log.debug(String.format("name:%s, class:%s, uri:%s", blob.getName(), blob.getClass(), blob.getUri()));
+                                        }
+                                    }
+                                }
+                                token = blobs.getContinuationToken();
+                            } while (blobs.getContinuationToken() != null);
+                            return builder.build();
                         }
-                    }
-                }
-                token = blobs.getContinuationToken();
-            } while (blobs.getContinuationToken() != null);
+
+                        @Override
+                        public boolean isRetryableException(Exception exception)
+                        {
+                            return true;
+                        }
+
+                        @Override
+                        public void onRetry(Exception exception, int retryCount, int retryLimit, int retryWait)
+                                throws RetryGiveupException
+                        {
+                            String message = String.format("SFTP GET request failed. Retrying %d/%d after %d seconds. Message: %s",
+                                    retryCount, retryLimit, retryWait / 1000, exception.getMessage());
+                            if (retryCount % 3 == 0) {
+                                log.warn(message, exception);
+                            }
+                            else {
+                                log.warn(message);
+                            }
+                        }
+
+                        @Override
+                        public void onGiveup(Exception firstException, Exception lastException)
+                                throws RetryGiveupException
+                        {
+                        }
+                    });
         }
-        catch (URISyntaxException | StorageException ex) {
+        catch (RetryGiveupException ex) {
+            throw Throwables.propagate(ex.getCause());
+        }
+        catch (InterruptedException ex) {
             throw Throwables.propagate(ex);
         }
-        return builder.build();
     }
 
     @Override
@@ -215,31 +259,54 @@ public class AzureBlobStorageFileInputPlugin
             if (opened || !iterator.hasNext()) {
                 return null;
             }
+            final String key = iterator.next();
             opened = true;
-            int count = 0;
+            try {
+                return retryExecutor()
+                        .withRetryLimit(maxConnectionRetry)
+                        .withInitialRetryWait(500)
+                        .withMaxRetryWait(30 * 1000)
+                        .runInterruptible(new Retryable<InputStream>() {
+                            @Override
+                            public InputStream call() throws StorageException, URISyntaxException, IOException
+                            {
+                                CloudBlobContainer container = client.getContainerReference(containerName);
+                                CloudBlob blob = container.getBlockBlobReference(key);
+                                return blob.openInputStream();
+                            }
 
-            while (true) {
-                try {
-                    CloudBlobContainer container = client.getContainerReference(containerName);
-                    CloudBlob blob = container.getBlockBlobReference(iterator.next());
-                    return blob.openInputStream();
-                }
-                catch (StorageException | URISyntaxException ex) {
-                    if (++count == maxConnectionRetry) {
-                        Throwables.propagate(ex);
-                    }
+                            @Override
+                            public boolean isRetryableException(Exception exception)
+                            {
+                                return true;
+                            }
 
-                    try {
-                        long sleepTime = ((long) Math.pow(2, count) * 1000);
-                        log.warn("Sleep in next connection retry: {} milliseconds", sleepTime);
-                        Thread.sleep(sleepTime);
-                    }
-                    catch (InterruptedException ex2) {
-                        // Ignore this exception because this exception is just about `sleep`.
-                        log.warn(ex2.getMessage(), ex2);
-                    }
-                    log.warn("Retrying to connect Azure server: " + count + " times");
-                }
+                            @Override
+                            public void onRetry(Exception exception, int retryCount, int retryLimit, int retryWait)
+                                    throws RetryGiveupException
+                            {
+                                String message = String.format("Azure Blob Storage GET request failed. Retrying %d/%d after %d seconds. Message: %s",
+                                        retryCount, retryLimit, retryWait / 1000, exception.getMessage());
+                                if (retryCount % 3 == 0) {
+                                    log.warn(message, exception);
+                                }
+                                else {
+                                    log.warn(message);
+                                }
+                            }
+
+                            @Override
+                            public void onGiveup(Exception firstException, Exception lastException)
+                                    throws RetryGiveupException
+                            {
+                            }
+                        });
+            }
+            catch (RetryGiveupException ex) {
+                throw Throwables.propagate(ex.getCause());
+            }
+            catch (InterruptedException ex) {
+                throw Throwables.propagate(ex);
             }
         }
 

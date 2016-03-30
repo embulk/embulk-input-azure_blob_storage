@@ -90,7 +90,7 @@ public class TestAzureBlobStorageFileInputPlugin
 
         PluginTask task = config.loadConfig(PluginTask.class);
         assertEquals(5000, task.getMaxResults());
-        assertEquals(5, task.getMaxConnectionRetry());
+        assertEquals(10, task.getMaxConnectionRetry());
     }
 
     @Test(expected = ConfigException.class)

@@ -66,7 +66,7 @@ public class AzureBlobStorageFileInputPlugin
         int getMaxResults();
 
         @Config("max_connection_retry")
-        @ConfigDefault("10") // 10 times retry to connect sftp server if failed.
+        @ConfigDefault("10") // 10 times retry to connect Azure Blob Storage if failed.
         int getMaxConnectionRetry();
 
         FileList getFiles();

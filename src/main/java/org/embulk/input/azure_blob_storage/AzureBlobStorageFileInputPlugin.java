@@ -83,8 +83,7 @@ public class AzureBlobStorageFileInputPlugin
     {
         final PluginTask task = config.loadConfig(PluginTask.class);
 
-        CloudBlobClient blobClient = newAzureClient(task.getAccountName(), task.getAccountKey());
-        task.setFiles(listFiles(blobClient, task));
+        task.setFiles(listFiles(task));
 
         return resume(task.dump(), task.getFiles().getTaskCount(), control);
     }
@@ -122,18 +121,18 @@ public class AzureBlobStorageFileInputPlugin
         return account.createCloudBlobClient();
     }
 
-    private FileList listFiles(CloudBlobClient client, PluginTask task)
+    private FileList listFiles(PluginTask task)
     {
         if (task.getPathPrefix().equals("/")) {
             log.info("Listing files with prefix \"/\". This doesn't mean all files in a bucket. If you intend to read all files, use \"path_prefix: ''\" (empty string) instead.");
         }
         FileList.Builder builder = new FileList.Builder(task);
 
-        return listFilesWithPrefix(builder, client, task.getContainer(), task.getPathPrefix(),
+        return listFilesWithPrefix(builder, task.getAccountName(), task.getAccountKey(), task.getContainer(), task.getPathPrefix(),
                                     task.getLastPath(), task.getMaxResults(), task.getMaxConnectionRetry());
     }
 
-    private static FileList listFilesWithPrefix(final FileList.Builder builder, final CloudBlobClient client,
+    private static FileList listFilesWithPrefix(final FileList.Builder builder, final String accountName, final String accountKey,
                                                 final String containerName, final String prefix, final Optional<String> lastPath,
                                                 final int maxResults, final int maxConnectionRetry)
     {
@@ -147,6 +146,7 @@ public class AzureBlobStorageFileInputPlugin
                         @Override
                         public FileList call() throws StorageException, URISyntaxException, IOException
                         {
+                            CloudBlobClient client = newAzureClient(accountName, accountKey);
                             ResultContinuation token = null;
                             if (lastKey != null) {
                                 token = new ResultContinuation();

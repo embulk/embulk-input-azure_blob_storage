@@ -3,7 +3,6 @@ package org.embulk.input.azure_blob_storage;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import com.microsoft.azure.storage.blob.CloudBlobClient;
 import org.embulk.EmbulkTestRuntime;
 import org.embulk.config.ConfigDiff;
 import org.embulk.config.ConfigException;
@@ -189,13 +188,9 @@ public class TestAzureBlobStorageFileInputPlugin
             }
         });
 
-        Method newAzureClient = AzureBlobStorageFileInputPlugin.class.getDeclaredMethod("newAzureClient", String.class, String.class);
-        newAzureClient.setAccessible(true);
-        CloudBlobClient client = (CloudBlobClient) newAzureClient.invoke(plugin, task.getAccountName(), task.getAccountKey());
-
-        Method listFiles = AzureBlobStorageFileInputPlugin.class.getDeclaredMethod("listFiles", CloudBlobClient.class, PluginTask.class);
+        Method listFiles = AzureBlobStorageFileInputPlugin.class.getDeclaredMethod("listFiles", PluginTask.class);
         listFiles.setAccessible(true);
-        FileList actual = (FileList) listFiles.invoke(plugin, client, task);
+        FileList actual = (FileList) listFiles.invoke(plugin, task);
         assertEquals(expected.get(0), actual.get(0).get(0));
         assertEquals(expected.get(1), actual.get(1).get(0));
         assertEquals(AZURE_CONTAINER_IMPORT_DIRECTORY + "sample_02.csv", configDiff.get(String.class, "last_path"));
@@ -208,13 +203,9 @@ public class TestAzureBlobStorageFileInputPlugin
         PluginTask task = config.loadConfig(PluginTask.class);
         runner.transaction(config, new Control());
 
-        Method newAzureClient = AzureBlobStorageFileInputPlugin.class.getDeclaredMethod("newAzureClient", String.class, String.class);
-        newAzureClient.setAccessible(true);
-        CloudBlobClient client = (CloudBlobClient) newAzureClient.invoke(plugin, task.getAccountName(), task.getAccountKey());
-
-        Method listFiles = AzureBlobStorageFileInputPlugin.class.getDeclaredMethod("listFiles", CloudBlobClient.class, PluginTask.class);
+        Method listFiles = AzureBlobStorageFileInputPlugin.class.getDeclaredMethod("listFiles", PluginTask.class);
         listFiles.setAccessible(true);
-        task.setFiles((FileList) listFiles.invoke(plugin, client, task));
+        task.setFiles((FileList) listFiles.invoke(plugin, task));
 
         assertRecords(config, output);
     }

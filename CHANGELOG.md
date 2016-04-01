@@ -1,13 +1,17 @@
-## 0.1.5 - 2015-03-30
+## 0.1.6 - 2016-04-01
+
+* [maintenance] Small refactoring [#9](https://github.com/sakama/embulk-input-azure_blob_storage/pull/9)
+
+## 0.1.5 - 2016-03-30
 
 * [maintenance] Use RetryExecutor when retry is needed [#8](https://github.com/sakama/embulk-input-azure_blob_storage/pull/8)
 
-## 0.1.4 - 2015-03-22
+## 0.1.4 - 2016-03-22
 
 * [new feature] Support `last_path` option [#7](https://github.com/sakama/embulk-input-azure_blob_storage/pull/7)
 * [new feature] Support `path_match_pattern` option [#6](https://github.com/sakama/embulk-input-azure_blob_storage/pull/6)
 
-## 0.1.3 - 2015-03-16
+## 0.1.3 - 2016-03-16
 
 * [maintenance] Add unit test [#4](https://github.com/sakama/embulk-input-azure_blob_storage/pull/4)
 * [maintenance] Add retry logic [#3](https://github.com/sakama/embulk-input-azure_blob_storage/pull/3)

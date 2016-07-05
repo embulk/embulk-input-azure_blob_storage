@@ -1,4 +1,5 @@
 # Azure Blob Storage file input plugin for Embulk
+[![Build Status](https://travis-ci.org/embulk/embulk-input-azure_blob_storage.svg?branch=master)](https://travis-ci.org/embulk/embulk-input-azure_blob_storage)
 
 [Embulk](http://www.embulk.org/) file input plugin read files stored on [Microsoft Azure](https://azure.microsoft.com/) [Blob Storage](https://azure.microsoft.com/en-us/documentation/articles/storage-introduction/#blob-storage)
 

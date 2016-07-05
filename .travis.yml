@@ -1,0 +1,10 @@
+language: java
+
+jdk:
+  - oraclejdk8
+  - oraclejdk7
+  - openjdk7
+
+script:
+  - ./gradlew gem
+  - ./gradlew --info check jacocoTestReport

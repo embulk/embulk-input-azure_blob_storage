@@ -17,6 +17,7 @@ First, create Azure [Storage Account](https://azure.microsoft.com/en-us/document
 - **account_key**: primary access key (string, required)
 - **container**: container name data stored (string, required)
 - **path_prefix**: prefix of target keys (string, required) (string, required)
+- **incremental**: enables incremental loading(boolean, optional. default: true). If incremental loading is enabled, config diff for the next execution will include `last_path` parameter so that next execution skips files before the path. Otherwise, `last_path` will not be included.
 - **path_match_pattern**: regexp to match file paths. If a file path doesn't match with this pattern, the file will be skipped (regexp string, optional)
 - **total_file_count_limit**: maximum number of files to read (integer, optional)
 

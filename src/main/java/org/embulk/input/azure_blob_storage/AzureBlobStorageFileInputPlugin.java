@@ -57,6 +57,10 @@ public class AzureBlobStorageFileInputPlugin
         @Config("path_prefix")
         String getPathPrefix();
 
+        @Config("incremental")
+        @ConfigDefault("true")
+        boolean getIncremental();
+
         @Config("last_path")
         @ConfigDefault("null")
         Optional<String> getLastPath();
@@ -95,7 +99,9 @@ public class AzureBlobStorageFileInputPlugin
         control.run(taskSource, taskCount);
 
         ConfigDiff configDiff = Exec.newConfigDiff();
-        configDiff.set("last_path", task.getFiles().getLastPath(task.getLastPath()));
+        if (task.getIncremental()) {
+            configDiff.set("last_path", task.getFiles().getLastPath(task.getLastPath()));
+        }
 
         return configDiff;
     }

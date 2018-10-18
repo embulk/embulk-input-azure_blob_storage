@@ -23,7 +23,7 @@ dependencies {
     compile  "org.embulk:embulk-core:0.9.8"
     provided "org.embulk:embulk-core:0.9.8"
 
-    compile "com.microsoft.azure:azure-storage:4.0.0"
+    compile "com.microsoft.azure:azure-storage:8.0.0"
 
     testCompile "junit:junit:4.12"
     testCompile "org.embulk:embulk-core:0.9.8:tests"

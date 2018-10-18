@@ -1,3 +1,5 @@
+## 0.1.8 - 2018-10-18
+* [maintenance] Update dependencies [#15](https://github.com/sakama/embulk-input-azure_blob_storage/pull/15)
 
 ## 0.1.7 - 2016-08-19
 * [new feature] Support `incremental` option [#13](https://github.com/sakama/embulk-input-azure_blob_storage/pull/13)

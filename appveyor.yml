@@ -1,0 +1,25 @@
+version: "{branch} {build}"
+
+build:
+  verbosity: detailed
+
+# To avoid call-selfrun.bat FileNotFound exception, it installs and uses handle.exe as workaround provided by AppVeyor support.
+# see http://help.appveyor.com/discussions/problems/5975-the-process-cannot-access-the-file-because-it-is-being-used-by-another-process
+build_script:
+- gradlew.bat --info --no-daemon check
+
+cache:
+- C:\Users\appveyor\.gradle
+
+environment:
+  matrix:
+  - JAVA_HOME: C:\Program Files\Java\jdk1.8.0
+  AZURE_ACCOUNT_NAME: sakamatest
+  AZURE_CONTAINER: blobcontainers
+  AZURE_CONTAINER_IMPORT_DIRECTORY: unittests_import
+  # Encrypted value created on AppVeyor console https://ci.appveyor.com/tools/encrypt
+  AZURE_ACCOUNT_KEY:
+    secure: jrgzEWXOp3+c6r1clT8fRH9ck/aIdnBdVpqQWAwEH/t6w6mGzvBxIt2p0O7dMOowntuIEQBZZ3sIZXT1WzcgGLr11lShl73Y5c93NZJ9oZ7NK1vT4FXaWkRdT4jnAeIn
+
+matrix:
+  fast_finish: true

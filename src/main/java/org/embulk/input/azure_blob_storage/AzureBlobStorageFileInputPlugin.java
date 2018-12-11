@@ -1,7 +1,6 @@
 package org.embulk.input.azure_blob_storage;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.Optional;
 import com.google.common.base.Throwables;
 import com.google.common.io.BaseEncoding;
 import com.microsoft.azure.storage.CloudStorageAccount;
@@ -38,6 +37,7 @@ import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 
 public class AzureBlobStorageFileInputPlugin
         implements FileInputPlugin

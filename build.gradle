@@ -20,14 +20,14 @@ targetCompatibility = 1.8
 version = "0.1.8"
 
 dependencies {
-    compile  "org.embulk:embulk-core:0.9.11"
-    provided "org.embulk:embulk-core:0.9.11"
+    compile  "org.embulk:embulk-core:0.9.12"
+    provided "org.embulk:embulk-core:0.9.12"
 
     compile "com.microsoft.azure:azure-storage:8.0.0"
 
     testCompile "junit:junit:4.12"
-    testCompile "org.embulk:embulk-core:0.9.11:tests"
-    testCompile "org.embulk:embulk-standards:0.9.11"
+    testCompile "org.embulk:embulk-core:0.9.12:tests"
+    testCompile "org.embulk:embulk-standards:0.9.12"
 }
 
 task classpath(type: Copy, dependsOn: ["jar"]) {

@@ -3,6 +3,8 @@
 
 [Embulk](http://www.embulk.org/) file input plugin read files stored on [Microsoft Azure](https://azure.microsoft.com/) [Blob Storage](https://azure.microsoft.com/en-us/documentation/articles/storage-introduction/#blob-storage)
 
+embulk-input-azure_blog_storage v0.2.0+ requires Embulk v0.9.12+
+
 ## Overview
 
 * **Plugin type**: file input

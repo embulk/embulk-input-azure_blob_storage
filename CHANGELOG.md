@@ -1,3 +1,6 @@
+## 0.2.0 - 2018-12-26
+* [new feature] Use file name output feature in Embulk core to show file name instead of logging [#17](https://github.com/sakama/embulk-input-azure_blob_storage/pull/17)
+
 ## 0.1.8 - 2018-10-18
 * [maintenance] Update dependencies [#15](https://github.com/sakama/embulk-input-azure_blob_storage/pull/15)
 

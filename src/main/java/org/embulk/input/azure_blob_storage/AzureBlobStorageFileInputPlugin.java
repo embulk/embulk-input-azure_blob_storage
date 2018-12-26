@@ -26,13 +26,13 @@ import org.embulk.spi.Exec;
 import org.embulk.spi.FileInputPlugin;
 import org.embulk.spi.TransactionalFileInput;
 import org.embulk.spi.util.InputStreamFileInput;
+import org.embulk.spi.util.InputStreamFileInput.InputStreamWithHints;
 import org.embulk.spi.util.RetryExecutor.RetryGiveupException;
 import org.embulk.spi.util.RetryExecutor.Retryable;
 import org.slf4j.Logger;
 import static org.embulk.spi.util.RetryExecutor.retryExecutor;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.util.Iterator;
@@ -260,7 +260,7 @@ public class AzureBlobStorageFileInputPlugin
         }
 
         @Override
-        public InputStream openNext() throws IOException
+        public InputStreamWithHints openNextWithHints()
         {
             if (opened || !iterator.hasNext()) {
                 return null;
@@ -272,13 +272,16 @@ public class AzureBlobStorageFileInputPlugin
                         .withRetryLimit(maxConnectionRetry)
                         .withInitialRetryWait(500)
                         .withMaxRetryWait(30 * 1000)
-                        .runInterruptible(new Retryable<InputStream>() {
+                        .runInterruptible(new Retryable<InputStreamWithHints>() {
                             @Override
-                            public InputStream call() throws StorageException, URISyntaxException, IOException
+                            public InputStreamWithHints call() throws StorageException, URISyntaxException, IOException
                             {
                                 CloudBlobContainer container = client.getContainerReference(containerName);
                                 CloudBlob blob = container.getBlockBlobReference(key);
-                                return blob.openInputStream();
+                                return new InputStreamWithHints(
+                                        blob.openInputStream(),
+                                        String.format("%s/%s", containerName, key)
+                                );
                             }
 
                             @Override

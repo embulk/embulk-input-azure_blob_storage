@@ -82,6 +82,8 @@ public class AzureBlobStorageFileInputPlugin
 
     private static final Logger log = Exec.getLogger(AzureBlobStorageFileInputPlugin.class);
 
+    private static boolean IS_REMOVE_FIRST_RECORD = true;
+
     @Override
     public ConfigDiff transaction(ConfigSource config, FileInputPlugin.Control control)
     {
@@ -167,6 +169,10 @@ public class AzureBlobStorageFileInputPlugin
                             do {
                                 blobs = container.listBlobsSegmented(prefix, true, null, maxResults, token, null, null);
                                 log.debug(String.format("result count(include directory):%s continuationToken:%s", blobs.getLength(), blobs.getContinuationToken()));
+                                if (lastKey != null && !blobs.getResults().isEmpty() && IS_REMOVE_FIRST_RECORD) {
+                                    log.info("Remove first item " + blobs.getResults().remove(0).getStorageUri().getPrimaryUri());
+                                    IS_REMOVE_FIRST_RECORD = false;
+                                }
                                 for (ListBlobItem blobItem : blobs.getResults()) {
                                     if (blobItem instanceof CloudBlob) {
                                         CloudBlob blob = (CloudBlob) blobItem;

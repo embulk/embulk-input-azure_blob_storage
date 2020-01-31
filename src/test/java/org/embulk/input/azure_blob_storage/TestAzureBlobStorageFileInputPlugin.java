@@ -223,8 +223,11 @@ public class TestAzureBlobStorageFileInputPlugin
 
         assertRecords(config, output);
 
+        output.pages.clear();
+
         config.set("last_path", configDiff.get(String.class, "last_path"));
         task = config.loadConfig(PluginTask.class);
+        runner.transaction(config, new Control());
         task.setFiles((FileList) listFiles.invoke(plugin, task));
         List<Object[]> records = getRecords(config, output);
         assertEquals(0, records.size());

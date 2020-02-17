@@ -211,6 +211,29 @@ public class TestAzureBlobStorageFileInputPlugin
     }
 
     @Test
+    public void testAzureIncrementalWithoutDuplicate()
+            throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, IOException
+    {
+        PluginTask task = config.loadConfig(PluginTask.class);
+        ConfigDiff configDiff = runner.transaction(config, new Control());
+
+        Method listFiles = AzureBlobStorageFileInputPlugin.class.getDeclaredMethod("listFiles", PluginTask.class);
+        listFiles.setAccessible(true);
+        task.setFiles((FileList) listFiles.invoke(plugin, task));
+
+        assertRecords(config, output);
+
+        output.pages.clear();
+
+        config.set("last_path", configDiff.get(String.class, "last_path"));
+        task = config.loadConfig(PluginTask.class);
+        runner.transaction(config, new Control());
+        task.setFiles((FileList) listFiles.invoke(plugin, task));
+        List<Object[]> records = getRecords(config, output);
+        assertEquals(0, records.size());
+    }
+
+    @Test
     public void testCreateNextToken() throws Exception
     {
         Method base64Encode = AzureBlobStorageFileInputPlugin.class.getDeclaredMethod("createNextToken", String.class);

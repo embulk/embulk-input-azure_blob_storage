@@ -1,5 +1,6 @@
 package org.embulk.input.azure_blob_storage;
 
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
@@ -10,14 +11,14 @@ import org.embulk.config.ConfigSource;
 import org.embulk.config.TaskReport;
 import org.embulk.config.TaskSource;
 import org.embulk.input.azure_blob_storage.AzureBlobStorageFileInputPlugin.PluginTask;
-import org.embulk.spi.Exec;
 import org.embulk.spi.FileInputPlugin;
 import org.embulk.spi.FileInputRunner;
 import org.embulk.spi.InputPlugin;
 import org.embulk.spi.Schema;
 import org.embulk.spi.TestPageBuilderReader.MockPageOutput;
+import org.embulk.spi.type.Type;
+import org.embulk.spi.type.Types;
 import org.embulk.spi.util.Pages;
-import org.embulk.standards.CsvParserPlugin;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -31,6 +32,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import static org.embulk.input.azure_blob_storage.AzureBlobStorageFileInputPlugin.CONFIG_MAPPER;
+import static org.embulk.input.azure_blob_storage.AzureBlobStorageFileInputPlugin.CONFIG_MAPPER_FACTORY;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assume.assumeNotNull;
 
@@ -81,13 +84,13 @@ public class TestAzureBlobStorageFileInputPlugin
     @Test
     public void checkDefaultValues()
     {
-        ConfigSource config = Exec.newConfigSource()
+        ConfigSource config = runtime.getExec().newConfigSource()
                 .set("account_name", AZURE_ACCOUNT_NAME)
                 .set("account_key", AZURE_ACCOUNT_KEY)
                 .set("container", AZURE_CONTAINER)
                 .set("path_prefix", "my-prefix");
 
-        PluginTask task = config.loadConfig(PluginTask.class);
+        PluginTask task = CONFIG_MAPPER.map(config, PluginTask.class);
         assertEquals(5000, task.getMaxResults());
         assertEquals(10, task.getMaxConnectionRetry());
     }
@@ -95,7 +98,7 @@ public class TestAzureBlobStorageFileInputPlugin
     @Test(expected = ConfigException.class)
     public void checkDefaultValuesAccountNameIsNull()
     {
-        ConfigSource config = Exec.newConfigSource()
+        ConfigSource config = runtime.getExec().newConfigSource()
                 .set("account_name", null)
                 .set("account_key", AZURE_ACCOUNT_KEY)
                 .set("container", AZURE_CONTAINER)
@@ -109,7 +112,7 @@ public class TestAzureBlobStorageFileInputPlugin
     @Test(expected = ConfigException.class)
     public void checkDefaultValuesAccountKeyIsNull()
     {
-        ConfigSource config = Exec.newConfigSource()
+        ConfigSource config = runtime.getExec().newConfigSource()
                 .set("account_name", AZURE_ACCOUNT_NAME)
                 .set("account_key", null)
                 .set("container", AZURE_CONTAINER)
@@ -123,7 +126,7 @@ public class TestAzureBlobStorageFileInputPlugin
     @Test(expected = ConfigException.class)
     public void checkDefaultValuesContainerIsNull()
     {
-        ConfigSource config = Exec.newConfigSource()
+        ConfigSource config = runtime.getExec().newConfigSource()
                 .set("account_name", AZURE_ACCOUNT_NAME)
                 .set("account_key", AZURE_ACCOUNT_KEY)
                 .set("container", null)
@@ -139,7 +142,7 @@ public class TestAzureBlobStorageFileInputPlugin
             throws GeneralSecurityException, IOException, NoSuchMethodException,
             IllegalAccessException, InvocationTargetException
     {
-        PluginTask task = config().loadConfig(PluginTask.class);
+        PluginTask task = CONFIG_MAPPER.map(config(), PluginTask.class);
 
         Method method = AzureBlobStorageFileInputPlugin.class.getDeclaredMethod("newAzureClient", String.class, String.class);
         method.setAccessible(true);
@@ -149,9 +152,9 @@ public class TestAzureBlobStorageFileInputPlugin
     @Test
     public void testResume()
     {
-        PluginTask task = config.loadConfig(PluginTask.class);
+        PluginTask task = CONFIG_MAPPER.map(config, PluginTask.class);
         task.setFiles(createFileList(Arrays.asList("in/aa/a"), task));
-        ConfigDiff configDiff = plugin.resume(task.dump(), 0, new FileInputPlugin.Control()
+        ConfigDiff configDiff = plugin.resume(task.toTaskSource(), 0, new FileInputPlugin.Control()
         {
             @Override
             public List<TaskReport> run(TaskSource taskSource, int taskCount)
@@ -165,8 +168,8 @@ public class TestAzureBlobStorageFileInputPlugin
     @Test
     public void testCleanup()
     {
-        PluginTask task = config.loadConfig(PluginTask.class);
-        plugin.cleanup(task.dump(), 0, Lists.<TaskReport>newArrayList()); // no errors happens
+        PluginTask task = CONFIG_MAPPER.map(config, PluginTask.class);
+        plugin.cleanup(task.toTaskSource(), 0, Lists.<TaskReport>newArrayList()); // no errors happens
     }
 
     @Test
@@ -178,7 +181,7 @@ public class TestAzureBlobStorageFileInputPlugin
             AZURE_CONTAINER_IMPORT_DIRECTORY + "sample_02.csv"
         );
 
-        PluginTask task = config.loadConfig(PluginTask.class);
+        PluginTask task = CONFIG_MAPPER.map(config, PluginTask.class);
         ConfigDiff configDiff = plugin.transaction(config, new FileInputPlugin.Control() {
             @Override
             public List<TaskReport> run(TaskSource taskSource, int taskCount)
@@ -200,8 +203,9 @@ public class TestAzureBlobStorageFileInputPlugin
     public void testAzureFileInputByOpen()
             throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, IOException
     {
-        PluginTask task = config.loadConfig(PluginTask.class);
-        runner.transaction(config, new Control());
+        ConfigSource newConfig = runtime.getExec().newConfigSource().merge(config);
+        PluginTask task = CONFIG_MAPPER.map(config, PluginTask.class);
+        runner.transaction(newConfig, new Control());
 
         Method listFiles = AzureBlobStorageFileInputPlugin.class.getDeclaredMethod("listFiles", PluginTask.class);
         listFiles.setAccessible(true);
@@ -214,8 +218,10 @@ public class TestAzureBlobStorageFileInputPlugin
     public void testAzureIncrementalWithoutDuplicate()
             throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, IOException
     {
-        PluginTask task = config.loadConfig(PluginTask.class);
-        ConfigDiff configDiff = runner.transaction(config, new Control());
+        // This is temperately solution to fix  org.embulk.util.config.DataSourceImpl does not implement loadConfig.
+        ConfigSource newConfig = runtime.getExec().newConfigSource().merge(config);
+        PluginTask task = CONFIG_MAPPER.map(config, PluginTask.class);
+        ConfigDiff configDiff = runner.transaction(newConfig, new Control());
 
         Method listFiles = AzureBlobStorageFileInputPlugin.class.getDeclaredMethod("listFiles", PluginTask.class);
         listFiles.setAccessible(true);
@@ -226,8 +232,9 @@ public class TestAzureBlobStorageFileInputPlugin
         output.pages.clear();
 
         config.set("last_path", configDiff.get(String.class, "last_path"));
-        task = config.loadConfig(PluginTask.class);
-        runner.transaction(config, new Control());
+        newConfig = runtime.getExec().newConfigSource().merge(config);
+        task = CONFIG_MAPPER.map(config, PluginTask.class);
+        runner.transaction(newConfig, new Control());
         task.setFiles((FileList) listFiles.invoke(plugin, task));
         List<Object[]> records = getRecords(config, output);
         assertEquals(0, records.size());
@@ -252,7 +259,7 @@ public class TestAzureBlobStorageFileInputPlugin
     {
         ImmutableList.Builder<TaskReport> reports = new ImmutableList.Builder<>();
         for (int i = 0; i < taskCount; i++) {
-            reports.add(Exec.newTaskReport());
+            reports.add(CONFIG_MAPPER_FACTORY.newTaskReport());
         }
         return reports.build();
     }
@@ -273,7 +280,7 @@ public class TestAzureBlobStorageFileInputPlugin
 
     public ConfigSource config()
     {
-        return Exec.newConfigSource()
+        return CONFIG_MAPPER_FACTORY.newConfigSource()
                 .set("account_name", AZURE_ACCOUNT_NAME)
                 .set("account_key", AZURE_ACCOUNT_KEY)
                 .set("container", AZURE_CONTAINER)
@@ -352,8 +359,25 @@ public class TestAzureBlobStorageFileInputPlugin
 
     private List<Object[]> getRecords(ConfigSource config, MockPageOutput output)
     {
-        Schema schema = config.getNested("parser").loadConfig(CsvParserPlugin.PluginTask.class).getSchemaConfig().toSchema();
+        Schema.Builder builder = Schema.builder();
+        config.getNested("parser").get(ArrayNode.class, "columns").forEach(
+            column -> builder.add(column.get("name").asText(), geType(column.get("type").asText()))
+        );
+        Schema schema = builder.build();
         return Pages.toObjects(schema, output.pages);
+    }
+
+    private Type geType(String typeName)
+    {
+        switch (typeName.toLowerCase()) {
+            case "string": return Types.STRING;
+            case "long": return Types.LONG;
+            case "double": return Types.DOUBLE;
+            case "timestamp": return Types.TIMESTAMP;
+            case "boolean": return Types.BOOLEAN;
+            case "json": return Types.JSON;
+        }
+        throw new ConfigException("Unsupported type " + typeName);
     }
 
     private static String getDirectory(String dir)

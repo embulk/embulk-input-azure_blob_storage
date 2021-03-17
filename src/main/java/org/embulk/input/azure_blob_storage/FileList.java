@@ -4,10 +4,11 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Throwables;
-import org.embulk.config.Config;
-import org.embulk.config.ConfigDefault;
+
 import org.embulk.config.ConfigSource;
 import org.embulk.spi.Exec;
+import org.embulk.util.config.Config;
+import org.embulk.util.config.ConfigDefault;
 import org.slf4j.Logger;
 
 import java.io.BufferedInputStream;
@@ -36,6 +37,8 @@ public class FileList
         @Config("path_match_pattern")
         @ConfigDefault("\".*\"")
         String getPathMatchPattern();
+
+        void setPathMatchPattern(String pathMatchPattern);
 
         @Config("total_file_count_limit")
         @ConfigDefault("2147483647")

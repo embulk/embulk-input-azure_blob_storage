@@ -151,6 +151,7 @@ public class TestAzureBlobStorageFileInputPlugin
 
     @Test
     public void testResume()
+        throws IOException
     {
         PluginTask task = CONFIG_MAPPER.map(config, PluginTask.class);
         task.setFiles(createFileList(Arrays.asList("in/aa/a"), task));
@@ -392,6 +393,7 @@ public class TestAzureBlobStorageFileInputPlugin
     }
 
     private FileList createFileList(List<String> fileList, PluginTask task)
+        throws IOException
     {
         FileList.Builder builder = new FileList.Builder(task);
         for (String file : fileList) {

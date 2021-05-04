@@ -1,7 +1,6 @@
 package org.embulk.input.azure_blob_storage;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.Throwables;
 import com.google.common.io.BaseEncoding;
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.ResultContinuation;
@@ -18,6 +17,7 @@ import org.embulk.config.ConfigException;
 import org.embulk.config.ConfigSource;
 import org.embulk.config.TaskReport;
 import org.embulk.config.TaskSource;
+import org.embulk.spi.DataException;
 import org.embulk.spi.Exec;
 import org.embulk.spi.FileInputPlugin;
 import org.embulk.spi.TransactionalFileInput;
@@ -33,6 +33,7 @@ import org.embulk.util.retryhelper.RetryExecutor;
 import org.embulk.util.retryhelper.RetryGiveupException;
 import org.embulk.util.retryhelper.Retryable;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -79,7 +80,7 @@ public class AzureBlobStorageFileInputPlugin
         void setFiles(FileList files);
     }
 
-    private static final Logger log = Exec.getLogger(AzureBlobStorageFileInputPlugin.class);
+    private static final Logger log = LoggerFactory.getLogger(AzureBlobStorageFileInputPlugin.class);
 
     private static boolean IS_REMOVE_FIRST_RECORD = true;
 
@@ -96,7 +97,7 @@ public class AzureBlobStorageFileInputPlugin
 
         task.setFiles(listFiles(task));
 
-        return resume(task.dump(), task.getFiles().getTaskCount(), control);
+        return resume(task.toTaskSource(), task.getFiles().getTaskCount(), control);
     }
 
     @Override
@@ -219,11 +220,8 @@ public class AzureBlobStorageFileInputPlugin
                         }
                     });
         }
-        catch (RetryGiveupException ex) {
-            throw Throwables.propagate(ex.getCause());
-        }
-        catch (InterruptedException ex) {
-            throw Throwables.propagate(ex);
+        catch (RetryGiveupException | InterruptedException ex) {
+            throw new DataException(ex.getCause());
         }
     }
 
@@ -246,7 +244,7 @@ public class AzureBlobStorageFileInputPlugin
 
         public TaskReport commit()
         {
-            return Exec.newTaskReport();
+            return CONFIG_MAPPER_FACTORY.newTaskReport();
         }
 
         @Override
@@ -322,11 +320,8 @@ public class AzureBlobStorageFileInputPlugin
                             }
                         });
             }
-            catch (RetryGiveupException ex) {
-                throw Throwables.propagate(ex.getCause());
-            }
-            catch (InterruptedException ex) {
-                throw Throwables.propagate(ex);
+            catch (RetryGiveupException | InterruptedException ex) {
+                throw new DataException(ex);
             }
         }
 

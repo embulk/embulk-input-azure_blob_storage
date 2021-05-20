@@ -19,13 +19,12 @@ group = "com.treasuredata.embulk.plugins"
 description = "An Embulk plugin to loads records from Azure Blob Storage."
 version = "0.3.1"
 
-def embulkVersion = '0.10.25'
+def embulkVersion = '0.10.28'
 
 dependencies {
     compileOnly "org.embulk:embulk-api:$embulkVersion"
     compileOnly "org.embulk:embulk-spi:$embulkVersion"
-
-    compile("org.embulk:embulk-util-config:0.2.0") {
+    compile("org.embulk:embulk-util-config:0.3.0") {
         // Conflict with Embulk Core
         exclude group: 'com.fasterxml.jackson.core', module: 'jackson-annotations'
         exclude group: 'com.fasterxml.jackson.core', module: 'jackson-core'
@@ -38,7 +37,7 @@ dependencies {
         exclude group: 'org.slf4j', module: 'slf4j-api'
     }
 
-    compile 'org.embulk:embulk-util-file:0.1.1'
+    compile 'org.embulk:embulk-util-file:0.1.3'
 
     // Explicit dependencies for embulk-util-* & embulk-base-restclient that matches with Embulk 0.10.19
     compile 'com.fasterxml.jackson.core:jackson-core:2.6.7'

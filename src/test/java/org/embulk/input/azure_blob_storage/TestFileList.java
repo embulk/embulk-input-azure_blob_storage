@@ -6,6 +6,8 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import java.io.IOException;
+
 import static org.junit.Assert.assertEquals;
 
 public class TestFileList
@@ -75,6 +77,7 @@ public class TestFileList
     }
 
     private static FileList newFileList(ConfigSource config, Object... nameAndSize)
+        throws IOException
     {
         FileList.Builder builder = new FileList.Builder(config);
 

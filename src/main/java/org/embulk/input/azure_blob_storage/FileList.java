@@ -3,18 +3,16 @@ package org.embulk.input.azure_blob_storage;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Throwables;
-import org.embulk.config.Config;
-import org.embulk.config.ConfigDefault;
 import org.embulk.config.ConfigSource;
-import org.embulk.spi.Exec;
+import org.embulk.util.config.Config;
+import org.embulk.util.config.ConfigDefault;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -76,7 +74,7 @@ public class FileList
 
     public static class Builder
     {
-        private final Logger log = Exec.getLogger(FileList.class);
+        private final Logger log = LoggerFactory.getLogger(FileList.class);
         private final ByteArrayOutputStream binary;
         private final OutputStream stream;
         private final List<Entry> entries = new ArrayList<>();
@@ -111,7 +109,7 @@ public class FileList
                 stream = new BufferedOutputStream(new GZIPOutputStream(binary));
             }
             catch (IOException ex) {
-                throw Throwables.propagate(ex);
+                throw new RuntimeException(ex);
             }
         }
 
@@ -167,7 +165,7 @@ public class FileList
                 stream.write(data);
             }
             catch (IOException ex) {
-                throw Throwables.propagate(ex);
+                throw new RuntimeException(ex);
             }
 
             last = path;
@@ -180,7 +178,7 @@ public class FileList
                 stream.close();
             }
             catch (IOException ex) {
-                throw Throwables.propagate(ex);
+                throw new RuntimeException(ex);
             }
             return new FileList(binary.toByteArray(), getSplits(entries), Optional.ofNullable(last));
         }
@@ -282,7 +280,7 @@ public class FileList
                 this.stream = new BufferedInputStream(new GZIPInputStream(new ByteArrayInputStream(data)));
             }
             catch (IOException ex) {
-                throw Throwables.propagate(ex);
+                throw new RuntimeException(ex);
             }
             this.current = 0;
         }
@@ -298,7 +296,7 @@ public class FileList
                     stream = new BufferedInputStream(new GZIPInputStream(new ByteArrayInputStream(data)));
                 }
                 catch (IOException ex) {
-                    throw Throwables.propagate(ex);
+                    throw new RuntimeException(ex);
                 }
                 current = 0;
             }
@@ -329,7 +327,7 @@ public class FileList
                 return b;
             }
             catch (IOException ex) {
-                throw Throwables.propagate(ex);
+                throw new RuntimeException(ex);
             }
         }
 

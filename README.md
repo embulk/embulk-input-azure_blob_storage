@@ -23,6 +23,16 @@ First, create Azure [Storage Account](https://azure.microsoft.com/en-us/document
 - **path_match_pattern**: regexp to match file paths. If a file path doesn't match with this pattern, the file will be skipped (regexp string, optional)
 - **total_file_count_limit**: maximum number of files to read (integer, optional)
 
+### Proxy configuration
+
+- **proxy**:
+    - **type**: (string, required, default: `null`)
+        - **http**: use HTTP Proxy
+    - **host**: (string, required)
+    - **port**: (int, required, default: `8080`)
+    - **user**: (string, optional)
+    - **password**: (string, optional)
+
 ## Example
 
 ```yaml
@@ -76,6 +86,18 @@ in:
   #path_match_pattern: .csv$|.csv.gz$    # match files whose suffix is .csv or .csv.gz
 ```
 
+With proxy
+```yaml
+in:
+  type: azure_blob_storage
+  ...
+  proxy:
+      type: http
+      host: proxy_host
+      port: 8080
+      user: proxy_user
+      password: proxy_secret_pass
+```
 ## Build
 
 ```

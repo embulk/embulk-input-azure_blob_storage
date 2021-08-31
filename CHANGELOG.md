@@ -1,3 +1,7 @@
+## 0.3.1 - 2021-03-17
+* [maintenance] Catch up with embulk 0.10.28
+* [new feature] Support `proxy` option
+
 ## 0.3.0 - 2020-02-17
 * [maintenance] Enhance the incremental process to skip file in the last_path to avoid duplication [#21](https://github.com/embulk/embulk-input-azure_blob_storage/pull/21)
 

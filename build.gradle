@@ -1,32 +1,36 @@
-import org.gradle.api.tasks.testing.logging.TestExceptionFormat
-import org.gradle.api.tasks.testing.logging.TestLogEvent
-
 plugins {
     id "java"
+    id "maven-publish"
+    id "signing"
     id "checkstyle"
     id "jacoco"
-    id "maven"
-    id 'maven-publish'
     id "org.embulk.embulk-plugins" version "0.4.2"
 }
 
 repositories {
     mavenCentral()
-    jcenter()
 }
+
+group = "org.embulk"
+version = "0.4.0-SNAPSHOT"
+description = "Reads files from Azure Blob Storage."
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
-group = "com.treasuredata.embulk.plugins"
-description = "An Embulk plugin to loads records from Azure Blob Storage."
-version = "0.3.1"
+tasks.withType(JavaCompile) {
+    options.compilerArgs << "-Xlint:deprecation" << "-Xlint:unchecked"
+    options.encoding = "UTF-8"
+}
 
-def embulkVersion = '0.10.31';
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
 
 dependencies {
-    compileOnly "org.embulk:embulk-api:$embulkVersion"
-    compileOnly "org.embulk:embulk-spi:$embulkVersion"
+    compileOnly "org.embulk:embulk-api:0.10.34"
+    compileOnly "org.embulk:embulk-spi:0.10.34"
 
     compile("com.microsoft.azure:azure-storage:8.6.6") {
         // Conflict with Embulk Core
@@ -59,13 +63,123 @@ dependencies {
     compile 'org.apache.commons:commons-lang3:3.4'
 
     testCompile "junit:junit:4.12"
-    testCompile "org.embulk:embulk-core:$embulkVersion"
-    testCompile "org.embulk:embulk-core:$embulkVersion:tests"
-    testCompile "org.embulk:embulk-deps:$embulkVersion"
-    testCompile "org.embulk:embulk-junit4:$embulkVersion"
-    testCompile "org.embulk:embulk-parser-csv:$embulkVersion"
-    testCompile "org.embulk:embulk-output-file:$embulkVersion"
-    testCompile "org.embulk:embulk-formatter-csv:$embulkVersion"
+    testCompile "org.embulk:embulk-core:0.10.34"
+    testCompile "org.embulk:embulk-deps:0.10.34"
+    testCompile "org.embulk:embulk-junit4:0.10.34"
+    testCompile "org.embulk:embulk-parser-csv:0.10.34"
+    testCompile "org.embulk:embulk-output-file:0.10.34"
+    testCompile "org.embulk:embulk-formatter-csv:0.10.34"
+}
+
+embulkPlugin {
+    mainClass = "org.embulk.input.azure_blob_storage.AzureBlobStorageFileInputPlugin"
+    category = "input"
+    type = "azure_blob_storage"
+}
+
+javadoc {
+    options {
+        locale = "en_US"
+        encoding = "UTF-8"
+    }
+}
+
+jar {
+    from rootProject.file("LICENSE")
+}
+
+sourcesJar {
+    from rootProject.file("LICENSE")
+}
+
+javadocJar {
+    from rootProject.file("LICENSE")
+}
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId = project.group
+            artifactId = project.name
+
+            from components.java  // Must be "components.java". The dependency modification works only for it.
+            // javadocJar and sourcesJar are added by java.withJavadocJar() and java.withSourcesJar() above.
+            // See: https://docs.gradle.org/current/javadoc/org/gradle/api/plugins/JavaPluginExtension.html
+
+            pom {  // https://central.sonatype.org/pages/requirements.html
+                packaging "jar"
+
+                name = project.name
+                description = project.description
+                url = "https://www.embulk.org/"
+
+                licenses {
+                    license {
+                        // http://central.sonatype.org/pages/requirements.html#license-information
+                        name = "The Apache License, Version 2.0"
+                        url = "https://www.apache.org/licenses/LICENSE-2.0.txt"
+                    }
+                }
+
+                developers {
+                    developer {
+                        name = "Satoshi Akama"
+                        email = "satoshiakama@gmail.com"
+                    }
+                    developer {
+                        name = "Hieu Duong"
+                        email = "duongminhhieu89@gmail.com"
+                    }
+                    developer {
+                        name = "Viet Nguyen"
+                        email = "viet.nguyen@treasure-data.com"
+                    }
+                }
+
+                scm {
+                    connection = "scm:git:git://github.com/embulk/embulk-input-azure_blob_storage.git"
+                    developerConnection = "scm:git:git@github.com:embulk/embulk-input-azure_blob_storage.git"
+                    url = "https://github.com/embulk/embulk-input-azure_blob_storage"
+                }
+            }
+        }
+    }
+
+    repositories {
+        maven {  // publishMavenPublicationToMavenCentralRepository
+            name = "mavenCentral"
+            if (project.version.endsWith("-SNAPSHOT")) {
+                url "https://oss.sonatype.org/content/repositories/snapshots"
+            } else {
+                url "https://oss.sonatype.org/service/local/staging/deploy/maven2"
+            }
+
+            credentials {
+                username = project.hasProperty("ossrhUsername") ? ossrhUsername : ""
+                password = project.hasProperty("ossrhPassword") ? ossrhPassword : ""
+            }
+        }
+    }
+}
+
+signing {
+    sign publishing.publications.maven
+}
+
+gem {
+    authors = [ "Satoshi Akama" ]
+    email = [ "satoshiakama@gmail.com" ]
+    summary = "Azure Blob Storage input plugin for Embulk"
+    homepage = "https://github.com/embulk/embulk-input-azure_blob_storage"
+    licenses = [ "Apache-2.0" ]
+
+    from rootProject.file("LICENSE")
+    from rootProject.file("NOTICE_GEM")
+    rename ("NOTICE_GEM", "NOTICE")
+}
+
+gemPush {
+    host = "https://rubygems.org"
 }
 
 test {
@@ -78,11 +192,11 @@ test {
 tasks.withType(Test) {
     testLogging {
         // set options for log level LIFECYCLE
-        events TestLogEvent.FAILED,
-                TestLogEvent.PASSED,
-                TestLogEvent.SKIPPED,
-                TestLogEvent.STANDARD_OUT
-        exceptionFormat TestExceptionFormat.FULL
+        events org.gradle.api.tasks.testing.logging.TestLogEvent.FAILED,
+                org.gradle.api.tasks.testing.logging.TestLogEvent.PASSED,
+                org.gradle.api.tasks.testing.logging.TestLogEvent.SKIPPED,
+                org.gradle.api.tasks.testing.logging.TestLogEvent.STANDARD_OUT
+        exceptionFormat org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
         showExceptions true
         showCauses true
         showStackTraces true
@@ -122,23 +236,4 @@ jacocoTestReport {
         csv.enabled false
         html.destination file("${buildDir}/reports/coverage")
     }
-}
-
-embulkPlugin {
-    mainClass = "org.embulk.input.azure_blob_storage.AzureBlobStorageFileInputPlugin"
-    category = "input"
-    type = "azure_blob_storage"
-}
-
-gem {
-    authors = [ "Satoshi Akama" ]
-    email = [ "satoshiakama@gmail.com" ]
-    summary = "Azure Blob Storage input plugin for Embulk"
-    homepage = "https://github.com/embulk/embulk-input-azure_blob_storage"
-    licenses = [ "Apache-2.0" ]
-}
-
-tasks.withType(JavaCompile) {
-    options.compilerArgs << "-Xlint:deprecation" << "-Xlint:unchecked"
-    options.encoding = "UTF-8"
 }

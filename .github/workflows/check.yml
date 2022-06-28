@@ -1,0 +1,30 @@
+name: Check
+on: [ pull_request, push ]
+jobs:
+  check:
+    runs-on: ${{ matrix.os }}
+    # push: always run.
+    # pull_request: run only when the PR is submitted from a forked repository, not within this repository.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+        - ubuntu-latest
+        - windows-latest
+    steps:
+    - name: Set Git's core.autocrlf to false for Windows before checkout
+      run: git config --global core.autocrlf false
+    - uses: actions/checkout@v2
+    - name: Set up OpenJDK 8
+      uses: actions/setup-java@v2
+      with:
+        java-version: 8
+        distribution: "temurin"
+    - name: Check
+      run: ./gradlew --stacktrace check jacocoTestReport
+      env:
+        AZURE_ACCOUNT_NAME: sakamatest
+        AZURE_CONTAINER: blobcontainers
+        AZURE_CONTAINER_IMPORT_DIRECTORY: unittests_import
+        secure: "kcQtK4pbq9ldVFOQXRiPd+ieVokGfPWfc45bZu9iAags68sFhUHxs0WrT4Io2RZvYSIQ7t5OHYwF8TUqgecaMPmoQmNkUHozgVoJ1oBu9BwA2ceh+u7/pkWPJ0VsAPW2+LE2uMC67MrvayeIxV3wuCCDdBHd2F64Ja8AE7p8Re8vrrDvD8BVF6+OqHma0S8i7PCZE+4rYeJpITbAAQ8PqMa8P/6Wkbp0LSJCAiDhwc/89wGn8wlZkju/aUGz0tG89Yq3Iw+xonhsPhLi910rg31vIMEH/K14I/uiUOaxavvxzc37fHAJgMzhQnRN67qhVuX5eocMosDAVAsXByURYAGZ4/f4sLqsghGkh4f+b96AchiGvM62hbwPyn1BMBl6fOezap5LOMAKjSZBReHNN2Hau+7YXDhqv2aVxVLWwXHDJQ8KhgMn10EZ+W3U5KuNLaGrfcrPfWIDxcR3rU81SXkzAyoHri895xlXq+CxsWOlYsXpWwpX14hNIJzcqtq9KQt+U34Xyw/whBsrSZbCitTZvPiTC9pFvCXBddpz07KqaUeUYwneGbVdCjpq42OO5bybSOAHEI8U7Ay7ldEFs0mRq8HzEOrhwZIdAgODsujQwV1jFgz6yKNwKTE6jx8UOqUQKalQjiAt0he4Pz8BjH+uxmRRvALNjF0ZWOMl5UU="

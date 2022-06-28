@@ -1,0 +1,26 @@
+embulk-input-azure_blob_storage
+Copyright 2015 The Embulk project
+
+The gem distribution of this product includes software developed in a part of the Embulk project (https://www.embulk.org/).
+It has been licenced under the Apache Software License, Version 2.0.
+
+The gem distribution of this product includes JARs of the Jackson project (https://github.com/FasterXML/jackson), as-is.
+They are licensed under the Apache Software License, Version 2.0.
+
+The gem distribution of this product includes JARs of the Jakarta Bean Validation API 1.1 (https://beanvalidation.org/1.1/), as-is.
+It is licensed under the Apache Software License, Version 2.0.
+
+The gem distribution of this product includes JARs of Apache Commons Lang, as-is.
+It is licensed under the Apache Software License, Version 2.0.
+
+The gem distribution of this product includes JAR of Guava (https://guava.dev/), as-is.
+It is licensed under the Apache Software License, Version 2.0.
+
+The gem distribution of this product includes JAR of Microsoft Azure SDK For Key Vault Core (https://docs.microsoft.com/ja-jp/java/api/overview/azure/keyvault), as-is.
+It is licensed under the MIT License.
+
+The gem distribution of this product includes JAR of Microsoft Azure Storage Client SDK (https://docs.microsoft.com/en-us/azure/storage/blobs/storage-quickstart-blobs-java-legacy), as-is.
+It is licensed under the Apache Software License, Version 2.0.
+
+The gem distribution of this product includes JARs of the Eclipse Jetty Project (https://www.eclipse.org/jetty/) 9.2, as-is.
+They are licensed under dual licenses of the Apache Software License, Version 2.0, and the Eclipse Public License 2.0.

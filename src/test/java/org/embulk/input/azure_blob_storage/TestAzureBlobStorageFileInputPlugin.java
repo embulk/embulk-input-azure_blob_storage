@@ -56,6 +56,7 @@ public class TestAzureBlobStorageFileInputPlugin
     private static String AZURE_CONTAINER;
     private static String AZURE_CONTAINER_IMPORT_DIRECTORY;
     private static String AZURE_PATH_PREFIX;
+    private static String AZURE_PATH_MISSING_PREFIX;
 
     /*
      * This test case requires environment variables
@@ -75,6 +76,7 @@ public class TestAzureBlobStorageFileInputPlugin
 
         AZURE_CONTAINER_IMPORT_DIRECTORY = System.getenv("AZURE_CONTAINER_IMPORT_DIRECTORY") != null ? getDirectory(System.getenv("AZURE_CONTAINER_IMPORT_DIRECTORY")) : getDirectory("");
         AZURE_PATH_PREFIX = AZURE_CONTAINER_IMPORT_DIRECTORY + "sample_";
+        AZURE_PATH_MISSING_PREFIX = AZURE_CONTAINER_IMPORT_DIRECTORY + "missing_";
     }
 
     private TestingEmbulk embulk = TestingEmbulk.builder()
@@ -213,6 +215,32 @@ public class TestAzureBlobStorageFileInputPlugin
     }
 
     @Test
+    public void testListFilesLastPathMissing()
+            throws NoSuchMethodException, IllegalAccessException, InvocationTargetException
+    {
+        List<String> expected = Arrays.asList(
+                AZURE_CONTAINER_IMPORT_DIRECTORY + "missing_02.csv",
+                AZURE_CONTAINER_IMPORT_DIRECTORY + "missing_03.csv"
+        );
+        ConfigSource newConfig = embulk.newConfig().merge(config)
+                .set("last_path", AZURE_CONTAINER_IMPORT_DIRECTORY + "missing_01.csv")
+                .set("path_prefix", AZURE_PATH_MISSING_PREFIX);
+
+        PluginTask task = CONFIG_MAPPER.map(newConfig, PluginTask.class);
+        ConfigDiff configDiff = plugin.transaction(newConfig, (taskSource, taskCount) -> {
+            assertEquals(2, taskCount);
+            return emptyTaskReports(taskCount);
+        });
+
+        Method listFiles = AzureBlobStorageFileInputPlugin.class.getDeclaredMethod("listFiles", PluginTask.class);
+        listFiles.setAccessible(true);
+        FileList actual = (FileList) listFiles.invoke(plugin, task);
+        assertEquals(expected.get(0), actual.get(0).get(0));
+        assertEquals(expected.get(1), actual.get(1).get(0));
+        assertEquals(AZURE_CONTAINER_IMPORT_DIRECTORY + "missing_03.csv", configDiff.get(String.class, "last_path"));
+    }
+
+    @Test
     public void testAzureFileInputByOpen()
             throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, IOException, URISyntaxException
     {
@@ -245,8 +273,8 @@ public class TestAzureBlobStorageFileInputPlugin
 
         assertArrayEquals(Files.readAllBytes(Paths.get(Resources.getResource("sample_out.csv").toURI())), Files.readAllBytes(out));
 
-        final String last_path = runInputResult.getConfigDiff().getNested("in").get(String.class, "last_path");
-        newConfig = embulk.newConfig().merge(config.set("last_path", last_path));
+        final String lastPath = runInputResult.getConfigDiff().getNested("in").get(String.class, "last_path");
+        newConfig = embulk.newConfig().merge(config.set("last_path", lastPath));
         task = CONFIG_MAPPER.map(newConfig, PluginTask.class);
         out = embulk.createTempFile("csv");
         embulk.runInput(newConfig, out);

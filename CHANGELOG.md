@@ -1,3 +1,6 @@
+## 0.3.2 - 2022-02-14
+* [maintenance] enhance skip file logic to skip a file in the last_path only if this file exists in the azure blob storage.
+
 ## 0.3.1 - 2021-03-17
 * [maintenance] Catch up with embulk 0.10.28
 * [new feature] Support `proxy` option

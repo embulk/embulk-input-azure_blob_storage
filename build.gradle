@@ -20,7 +20,7 @@ targetCompatibility = 1.8
 
 group = "com.treasuredata.embulk.plugins"
 description = "An Embulk plugin to loads records from Azure Blob Storage."
-version = "0.3.1"
+version = "0.3.2"
 
 def embulkVersion = '0.10.31';
 
@@ -54,6 +54,12 @@ dependencies {
     compile 'com.fasterxml.jackson.core:jackson-databind:2.6.7'
     compile 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.6.7'
     compile 'javax.validation:validation-api:1.1.0.Final'
+
+    // Necessary for bval from Java 9+
+    compile 'javax.xml.bind:jaxb-api:2.2.11'
+    compile 'com.sun.xml.bind:jaxb-core:2.2.11'
+    compile 'com.sun.xml.bind:jaxb-impl:2.2.11'
+    compile 'javax.activation:activation:1.1.1'
 
     compile 'com.google.guava:guava:18.0'
     compile 'org.apache.commons:commons-lang3:3.4'

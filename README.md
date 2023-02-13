@@ -116,6 +116,8 @@ Additionally, following files will be needed to upload to existing GCS bucket.
 
 * [sample_01.csv](src/test/resources/sample_01.csv)
 * [sample_02.csv](src/test/resources/sample_02.csv)
+* [missing_02.csv](src/test/resources/missing_02.csv)
+* [missing_03.csv](src/test/resources/missing_03.csv)
 
 When environment variables are not set, skip some test cases.
 

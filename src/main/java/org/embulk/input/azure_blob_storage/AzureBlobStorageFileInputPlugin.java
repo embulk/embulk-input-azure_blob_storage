@@ -85,8 +85,6 @@ public class AzureBlobStorageFileInputPlugin
 
     private static final Logger log = LoggerFactory.getLogger(AzureBlobStorageFileInputPlugin.class);
 
-    private static boolean IS_REMOVE_FIRST_RECORD = true;
-
     public static final ConfigMapperFactory CONFIG_MAPPER_FACTORY = ConfigMapperFactory
         .builder()
         .addDefaultModules()
@@ -181,14 +179,16 @@ public class AzureBlobStorageFileInputPlugin
                             do {
                                 blobs = container.listBlobsSegmented(prefix, true, null, maxResults, token, null, op);
                                 log.debug(String.format("result count(include directory):%s continuationToken:%s", blobs.getLength(), blobs.getContinuationToken()));
-                                if (lastKey != null && !blobs.getResults().isEmpty() && IS_REMOVE_FIRST_RECORD) {
-                                    log.info("Remove first item " + blobs.getResults().remove(0).getStorageUri().getPrimaryUri());
-                                    IS_REMOVE_FIRST_RECORD = false;
-                                }
                                 for (ListBlobItem blobItem : blobs.getResults()) {
                                     if (blobItem instanceof CloudBlob) {
                                         CloudBlob blob = (CloudBlob) blobItem;
                                         if (blob.exists() && !blob.getUri().toString().endsWith("/")) {
+                                            if (lastPath.isPresent()
+                                                    && !lastPath.get().isEmpty()
+                                                    && blob.getName().equals(lastPath.get())) {
+                                                log.info("skip {} because match with last_path {}", blob.getName(), lastPath.get());
+                                                continue;
+                                            }
                                             builder.add(blob.getName(), blob.getProperties().getLength());
                                             log.debug(String.format("name:%s, class:%s, uri:%s", blob.getName(), blob.getClass(), blob.getUri()));
                                         }
@@ -209,7 +209,7 @@ public class AzureBlobStorageFileInputPlugin
                         public void onRetry(Exception exception, int retryCount, int retryLimit, int retryWait)
                                 throws RetryGiveupException
                         {
-                            String message = String.format("SFTP GET request failed. Retrying %d/%d after %d seconds. Message: %s",
+                            String message = String.format("Azure GET request failed. Retrying %d/%d after %d seconds. Message: %s",
                                     retryCount, retryLimit, retryWait / 1000, exception.getMessage());
                             if (retryCount % 3 == 0) {
                                 log.warn(message, exception);

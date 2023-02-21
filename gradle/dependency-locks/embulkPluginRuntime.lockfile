@@ -8,7 +8,11 @@ com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.6.7
 com.google.guava:guava:18.0
 com.microsoft.azure:azure-keyvault-core:1.2.4
 com.microsoft.azure:azure-storage:8.6.6
+com.sun.xml.bind:jaxb-core:2.2.11
+com.sun.xml.bind:jaxb-impl:2.2.11
+javax.activation:activation:1.1.1
 javax.validation:validation-api:1.1.0.Final
+javax.xml.bind:jaxb-api:2.2.11
 org.apache.commons:commons-lang3:3.4
 org.eclipse.jetty:jetty-client:9.2.14.v20151106
 org.eclipse.jetty:jetty-http:9.2.14.v20151106
